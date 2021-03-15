@@ -1,0 +1,5 @@
+pathlib
+tensorflow
+numpy
+matplotlib
+seaborn
