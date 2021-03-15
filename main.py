@@ -6,6 +6,8 @@ import numpy as np
 import seaborn as sns
 import tensorflow as tf
 
+import preprocess
+
 from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow.keras import layers
 from tensorflow.keras import models
@@ -16,145 +18,30 @@ np.random.seed(seed)
 
 samples_dir = pathlib.Path('samples')
 
-commands = np.array(tf.io.gfile.listdir(str(samples_dir)))
-# print('Commands:', commands)
+numbers = np.array(tf.io.gfile.listdir(str(samples_dir)))
 
 filenames = tf.io.gfile.glob(str(samples_dir) + '/*/*')
 filenames = tf.random.shuffle(filenames)
-# print(filenames)
 num_samples = len(filenames)
-# print('Number of total examples:', num_samples)
-# print('Number of examples per label:',
-#       len(tf.io.gfile.listdir(str(samples_dir/commands[0]))))
-# print('Example file tensor:', filenames[0])
+count_train = (num_samples // 10) * 8
+count_test = num_samples // 10
 
-# train_files = filenames[:160]
-# val_files = filenames[160: 160 + 19]
-# test_files = filenames[-19:]
-
-train_files = filenames[:480]
-val_files = filenames[480: 480 + 57]
-test_files = filenames[-57:]
-
-
-def decode_audio(audio_binary):
-    audio, _ = tf.audio.decode_wav(audio_binary)
-    return tf.squeeze(audio, axis=-1)
-
-
-def get_label(file_path):
-    parts = tf.strings.split(file_path, os.path.sep)
-    return parts[-2]
-
-
-def get_waveform_and_label(file_path):
-    label = get_label(file_path)
-    audio_binary = tf.io.read_file(file_path)
-    waveform = decode_audio(audio_binary)
-    return waveform, label
-
+train_files = filenames[:count_train]
+val_files = filenames[count_train: count_train + count_test]
+test_files = filenames[-count_test:]
 
 AUTOTUNE = tf.data.AUTOTUNE
 files_ds = tf.data.Dataset.from_tensor_slices(train_files)
-waveform_ds = files_ds.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-
-# rows = 3
-# cols = 3
-# n = rows * cols
-# fig, axes = plt.subplots(rows, cols, figsize=(10, 12))
-# for i, (audio, label) in enumerate(waveform_ds.take(n)):
-#     r = i // cols
-#     c = i % cols
-#     ax = axes[r][c]
-#     ax.plot(audio.numpy())
-#     ax.set_yticks(np.arange(-1.2, 1.2, 0.2))
-#     label = label.numpy().decode('utf-8')
-#     ax.set_title(label)
-#
-# plt.show()
-
-
-def get_spectrogram(waveform):
-    # Padding for files with less than 16000 samples
-    zero_padding = tf.zeros([35000] - tf.shape(waveform), dtype=tf.float32)
-
-    # Concatenate audio with padding so that all audio clips will be of the
-    # same length
-    waveform = tf.cast(waveform, tf.float32)
-    equal_length = tf.concat([waveform, zero_padding], 0)
-    spectrogram = tf.signal.stft(
-        equal_length, frame_length=256, frame_step=128)
-
-    spectrogram = tf.abs(spectrogram)
-
-    return spectrogram
-
-
-# def plot_spectrogram(spectrogram, ax):
-#     # Convert to frequencies to log scale and transpose so that the time is
-#     # represented in the x-axis (columns).
-#     log_spec = np.log(spectrogram.T)
-#     height = log_spec.shape[0]
-#     X = np.arange(35000, step=height)
-#     Y = range(height)
-#     ax.pcolormesh(X, Y, log_spec)
-
-
-# for waveform, label in waveform_ds.take(1):
-#     label = label.numpy().decode('utf-8')
-#     spectrogram = get_spectrogram(waveform)
-#     print('Label:', label)
-#     print('Waveform shape:', waveform.shape)
-#     print('Spectrogram shape:', spectrogram.shape)
-#
-#     fig, axes = plt.subplots(2, figsize=(12, 8))
-#     timescale = np.arange(waveform.shape[0])
-#     axes[0].plot(timescale, waveform.numpy())
-#     axes[0].set_title('Waveform')
-#     axes[0].set_xlim([0, 35000])
-#     plot_spectrogram(spectrogram.numpy(), axes[1])
-#     axes[1].set_title('Spectrogram')
-#     plt.show()
-
-
-def get_spectrogram_and_label_id(audio, label):
-    spectrogram = get_spectrogram(audio)
-    spectrogram = tf.expand_dims(spectrogram, -1)
-    label_id = tf.argmax(label == commands)
-    return spectrogram, label_id
-
+waveform_ds = files_ds.map(preprocess.get_waveform_and_label, num_parallel_calls=AUTOTUNE)
 
 spectrogram_ds = waveform_ds.map(
-    get_spectrogram_and_label_id, num_parallel_calls=AUTOTUNE)
-
-# rows = 3
-# cols = 3
-# n = rows * cols
-# fig, axes = plt.subplots(rows, cols, figsize=(10, 10))
-# for i, (spectrogram, label_id) in enumerate(spectrogram_ds.take(n)):
-#     r = i // cols
-#     c = i % cols
-#     ax = axes[r][c]
-#     plot_spectrogram(np.squeeze(spectrogram.numpy()), ax)
-#     ax.set_title(commands[label_id.numpy()])
-#     ax.axis('off')
-#
-# plt.show()
-
-
-def preprocess_dataset(files):
-    files_ds = tf.data.Dataset.from_tensor_slices(files)
-    output_ds = files_ds.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-    output_ds = output_ds.map(
-        get_spectrogram_and_label_id, num_parallel_calls=AUTOTUNE)
-    return output_ds
-
+    preprocess.get_spectrogram_and_label_id, num_parallel_calls=AUTOTUNE)
 
 train_ds = spectrogram_ds
-val_ds = preprocess_dataset(val_files)
-test_ds = preprocess_dataset(test_files)
+val_ds = preprocess.preprocess_dataset(val_files)
+test_ds = preprocess.preprocess_dataset(test_files)
 
-batch_size = 64
+batch_size = 4
 train_ds = train_ds.batch(batch_size)
 val_ds = val_ds.batch(batch_size)
 
@@ -164,21 +51,21 @@ val_ds = val_ds.cache().prefetch(AUTOTUNE)
 for spectrogram, _ in spectrogram_ds.take(1):
     input_shape = spectrogram.shape
 
-num_labels = len(commands)
+num_labels = len(numbers)
 
 norm_layer = preprocessing.Normalization()
 norm_layer.adapt(spectrogram_ds.map(lambda x, _: x))
 
 model = models.Sequential([
     layers.Input(shape=input_shape),
-    preprocessing.Resizing(32, 32),
+    preprocessing.Resizing(64, 64),
     norm_layer,
+    layers.Conv2D(16, 3, activation='relu'),
     layers.Conv2D(32, 3, activation='relu'),
-    layers.Conv2D(64, 3, activation='relu'),
     layers.MaxPooling2D(),
     layers.Dropout(0.25),
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
+    layers.Dense(64, activation='relu'),
     layers.Dropout(0.5),
     layers.Dense(num_labels),
 ])
@@ -198,6 +85,7 @@ history = model.fit(
     epochs=EPOCHS,
     callbacks=tf.keras.callbacks.EarlyStopping(verbose=1, patience=2),
 )
+model.save('recognizer.h5')
 
 metrics = history.history
 plt.plot(history.epoch, metrics['loss'], metrics['val_loss'])
@@ -222,18 +110,8 @@ print(f'Test set accuracy: {test_acc:.0%}')
 
 confusion_mtx = tf.math.confusion_matrix(y_true, y_pred)
 plt.figure(figsize=(10, 8))
-sns.heatmap(confusion_mtx, xticklabels=commands, yticklabels=commands,
+sns.heatmap(confusion_mtx, xticklabels=numbers, yticklabels=numbers,
             annot=True, fmt='g')
 plt.xlabel('Prediction')
 plt.ylabel('Label')
 plt.show()
-
-sample_file = samples_dir / 'test.wav'
-
-sample_ds = preprocess_dataset([str(sample_file)])
-
-for spectrogram, label in sample_ds.batch(1):
-    prediction = model(spectrogram)
-    plt.bar(commands, tf.nn.softmax(prediction[0]))
-    plt.title(f'Predictions for "{commands[label[0]]}"')
-    plt.show()

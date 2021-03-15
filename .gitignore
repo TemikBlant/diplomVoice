@@ -1,4 +1,4 @@
-/idea
-/venv
-/samples - копия
-/.git
+.idea
+.venv
+.samples — копия
+.git
