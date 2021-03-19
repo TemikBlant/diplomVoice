@@ -57,7 +57,7 @@ norm_layer.adapt(spectrogram_ds.map(lambda x, _: x))
 
 model = models.Sequential([
     layers.Input(shape=input_shape),
-    preprocessing.Resizing(64, 64),
+    preprocessing.Resizing(32, 32),
     norm_layer,
     layers.Conv2D(16, 3, activation='relu'),
     layers.Conv2D(32, 3, activation='relu'),

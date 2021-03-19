@@ -22,13 +22,13 @@ index = int(input())
 print("recording via index " + str(index))
 
 
-count = 88
-hueta = True
-while hueta:
-    command_start = str(input())
-    if command_start == 'q':
-        hueta = False
-        break
+count = 0
+hihi = True
+while hihi:
+    # command_start = str(input())
+    # if command_start == 'q':
+    #     hihi = False
+    #     break
     print("Ready")
     print("recording started")
     stream = audio.open(format=FORMAT, channels=CHANNELS,
@@ -40,7 +40,7 @@ while hueta:
         Recordframes.append(data)
     stream.stop_stream()
     stream.close()
-    waveFile = wave.open(str(command_start) + '_' + str(count) + '.wav', 'wb')
+    waveFile = wave.open('noise_' + str(count) + '.wav', 'wb')
     waveFile.setnchannels(CHANNELS)
     waveFile.setsampwidth(audio.get_sample_size(FORMAT))
     waveFile.setframerate(RATE)

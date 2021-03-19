@@ -13,6 +13,7 @@ audio = pyaudio.PyAudio()
 r = Recognizer()
 r.load_models()
 
+
 print("----------------------record device list---------------------")
 info = audio.get_host_api_info_by_index(0)
 numdevices = info.get('deviceCount')
@@ -26,12 +27,12 @@ index = int(input())
 print("recording via index " + str(index))
 
 
-hueta = True
-while hueta:
+flag = True
+while flag:
     command_start = str(input())
     if command_start == 'q':
-        hueta = False
-        break
+        flag = False
+        sys.exit()
     print("Ready")
     print("recording started")
     stream = audio.open(format=FORMAT, channels=CHANNELS,
@@ -49,6 +50,6 @@ while hueta:
     waveFile.setframerate(RATE)
     waveFile.writeframes(b''.join(Recordframes))
     waveFile.close()
-    print(r.recognize())
+    print(r.recognize(), end='')
     print("recording stopped")
 audio.terminate()
