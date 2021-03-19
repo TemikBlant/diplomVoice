@@ -12,7 +12,6 @@ class Recognizer:
     def __init__(self):
         temp_dir = pathlib.Path('temp')
         self.temp_file = temp_dir / 'test.wav'
-        print(self.temp_file)
         samples_dir = pathlib.Path('samples')
         self.numbers = np.array(tf.io.gfile.listdir(str(samples_dir)))
 

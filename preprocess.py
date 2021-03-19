@@ -26,11 +26,8 @@ def get_waveform_and_label(file_path):
 
 
 def get_spectrogram(waveform):
-    # Padding for files with less than 16000 samples
-    zero_padding = tf.zeros([35000] - tf.shape(waveform), dtype=tf.float32)
+    zero_padding = tf.zeros([16000] - tf.shape(waveform), dtype=tf.float32)
 
-    # Concatenate audio with padding so that all audio clips will be of the
-    # same length
     waveform = tf.cast(waveform, tf.float32)
     equal_length = tf.concat([waveform, zero_padding], 0)
     spectrogram = tf.signal.stft(
