@@ -7,7 +7,6 @@ from collections import Counter
 
 
 def counter_for_models(answers):
-    print(answers)
     counter = Counter(answers).most_common(1)
     if counter[0][1] >= 2:
         return counter[0][0]
@@ -16,17 +15,16 @@ def counter_for_models(answers):
 
 
 class Recognizer:
-    def __init__(self):
-        temp_dir = pathlib.Path('temp')
-        self.temp_file = temp_dir / 'test.wav'
+    def __init__(self, temp_dir):
+        self.temp_file = temp_dir + '/test.wav'
         samples_dir = pathlib.Path('samples')
         self.numbers = np.array(tf.io.gfile.listdir(str(samples_dir)))
 
     def load_models(self):
         print('___________________________________start loading model______________________________')
-        self.model1 = load_model('nets\\recognizer1.h5')
-        self.model2 = load_model('nets\\recognizer2.h5')
-        self.model3 = load_model('nets\\recognizer3.h5')
+        self.model1 = load_model('nets/recognizer1.h5')
+        self.model2 = load_model('nets/recognizer2.h5')
+        self.model3 = load_model('nets/recognizer3.h5')
         print('___________________________________model has been loaded____________________________')
 
     def recognize(self):
@@ -39,7 +37,6 @@ class Recognizer:
             answer2 = list(prediction2[0]).index(max(prediction2[0]))
             answer3 = list(prediction3[0]).index(max(prediction3[0]))
             predict = counter_for_models([self.numbers[answer1], self.numbers[answer2], self.numbers[answer3]])
-            print(predict)
             if predict == 'silence' or 'noise':
-                predict = ''
+                predict = 'noise'
             return predict

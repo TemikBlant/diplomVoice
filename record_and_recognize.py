@@ -1,7 +1,7 @@
 import pyaudio
 import wave
-from recognizer import Recognizer
 import sys
+import requests
 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -10,8 +10,6 @@ CHUNK = 128
 RECORD_SECONDS = 1
 device_index = 2
 audio = pyaudio.PyAudio()
-r = Recognizer()
-r.load_models()
 
 
 print("----------------------record device list---------------------")
@@ -44,7 +42,7 @@ while flag:
         Recordframes.append(data)
     stream.stop_stream()
     stream.close()
-    waveFile = wave.open("temp\\test.wav", 'wb')
+    waveFile = wave.open("temp/test.wav", 'wb')
     waveFile.setnchannels(CHANNELS)
     waveFile.setsampwidth(audio.get_sample_size(FORMAT))
     waveFile.setframerate(RATE)
